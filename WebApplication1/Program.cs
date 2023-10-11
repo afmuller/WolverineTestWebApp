@@ -6,6 +6,7 @@ using Wolverine;
 using Wolverine.EntityFrameworkCore;
 using Wolverine.FluentValidation;
 using Wolverine.Postgresql;
+using Wolverine.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
@@ -17,11 +18,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 builder.Services.AddDbContextWithWolverineIntegration<ApplicationDbContext>(
-    options => options.UseNpgsql(
+    options => options.UseSqlServer(
         connectionString, b =>
         {
             b.MigrationsAssembly(typeof(ApplicationDbContext).Assembly.FullName);
-            b.UseNodaTime();
         }
     )
 );
@@ -31,7 +31,7 @@ builder.Services.AddResourceSetupOnStartup();
 builder.Host.UseWolverine(opts =>
 {
     opts.UseFluentValidation();
-    opts.PersistMessagesWithPostgresql(connectionString);
+    opts.PersistMessagesWithSqlServer(connectionString);
     opts.UseEntityFrameworkCoreTransactions();
     opts.Policies.UseDurableLocalQueues();
     opts.Policies.AutoApplyTransactions();
@@ -48,7 +48,7 @@ using (var scope = app.Services.CreateScope())
     {
         var context = services.GetRequiredService<ApplicationDbContext>();
 
-        if (context.Database.IsNpgsql())
+        if (context.Database.IsNpgsql() || context.Database.IsSqlServer())
         {
             context.Database.Migrate();
         }
